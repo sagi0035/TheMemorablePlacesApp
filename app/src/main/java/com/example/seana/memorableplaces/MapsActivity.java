@@ -41,9 +41,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public void centreMapOnLocation(Location location, String title) {
 
+        // so if a location is available
         if (location != null) {
+            // we will get the location
             LatLng userLocation = new LatLng(location.getLatitude(), location.getLongitude());
+            // claer any previous markers that are available
             mMap.clear();
+            // and add a marker for this current location
             mMap.addMarker(new MarkerOptions().position(userLocation).title(title));
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 10));
         }
@@ -51,6 +55,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
+    // so once the permission is granted we will set the location
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -58,8 +63,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (grantResults.length > 0 && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
 
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                // so first the location is requested
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 1, locationListener);
+                // then we get the last set location
                 Location getLastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                // and we call the function as per the location
                 centreMapOnLocation(getLastKnownLocation, "You are here!");
             }
 
@@ -96,13 +104,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap.setOnMapLongClickListener(this);
 
+        // so first we will get the intent
         Intent intent = getIntent();
 
+        // now if the extra is 0 that means user has picked the first item meaning that we should just zoom in on the user's current location
         if (intent.getIntExtra("List Number", 0) == 0) {
+            // so on the map we get the liocations
             locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
             locationListener = new LocationListener() {
                 @Override
                 public void onLocationChanged(Location location) {
+                    // and when the location is change we set the function so that the marker is changed
                     centreMapOnLocation(location, "Your location");
                 }
 
@@ -122,8 +134,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             };
 
+            // and here we are checking whether or not we have permission if we do not we are going to once again ask for permission
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+            // otherwise we will signify the location to the user
             } else {
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 1, locationListener);
                 Location getLastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
@@ -132,14 +146,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         } else {
             Location placeLocation = new Location(LocationManager.GPS_PROVIDER);
+            // so if another location (not the first one) is clicked we get the latitude and longitude as per the list item chpsen
             placeLocation.setLatitude(MainActivity.locations.get(intent.getIntExtra("List Number", 0)).latitude);
             placeLocation.setLongitude(MainActivity.locations.get(intent.getIntExtra("List Number", 0)).longitude);
+            // and set the location as such
             centreMapOnLocation(placeLocation,"this is");
         }
 
 
     }
 
+    // so on a long click we will set a new location marker and save it to the list so it will show in the main activity
     @Override
     public void onMapLongClick(LatLng latLng) {
 
@@ -147,12 +164,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         String address = "";
         try {
+            // so we get the location and its infofrom the geocodert
             List<Address> listAddresses = geocoder.getFromLocation(latLng.latitude,latLng.longitude,1);
 
+            // if the above var was successfully initialised we get all the relevant info
             if (listAddresses.size() > 0 && listAddresses != null) {
 
 
 
+                // all this info is only saved if it is available as per google
                 if (listAddresses.get(0).getThoroughfare() != null) {
                     address=listAddresses.get(0).getThoroughfare() + " ";
                 } else {
@@ -183,27 +203,36 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
 
+        // so we add the marker for the new place that we chose
         mMap.addMarker(new MarkerOptions().position(latLng).title(address));
 
+        // we save the string details for the listview
         MainActivity.places.add(address);
+        // as well as the actual geographical changes so as to send the user to location when the list item is chosen
         MainActivity.locations.add(latLng);
 
         MainActivity.arrayAdapter.notifyDataSetChanged();
 
 
 
+        // and we save everything permanently
         SharedPreferences sharedPreferences = this.getSharedPreferences("com.example.seana.memorableplaces",Context.MODE_PRIVATE);
 
         try {
 
+
+            // so for the latlng we are going to create seperate array lists for the lat nd lon so as to save the details of the location#
             ArrayList<String> latitudes = new ArrayList<String>();
             ArrayList<String> longitude = new ArrayList<String>();
 
+            // we iterate through the seperate lats and lions
             for (LatLng coOrd: MainActivity.locations) {
+                // and here is were we save the string values of the longitude and longitude of the chosen area
                 latitudes.add(Double.toString(coOrd.longitude));
                 longitude.add(Double.toString(coOrd.latitude));
             }
 
+            // so here we are editing the permanent info as per the ObjectSerializer.java which helps us serialize and de-serialize the info
             sharedPreferences.edit().putString("Index",ObjectSerializer.serialize(MainActivity.places)).apply();
             sharedPreferences.edit().putString("Lat",ObjectSerializer.serialize(latitudes)).apply();
             sharedPreferences.edit().putString("Lon",ObjectSerializer.serialize(longitude)).apply();
